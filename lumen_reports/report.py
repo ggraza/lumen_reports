@@ -68,6 +68,11 @@ PALETTES = {
 }
 BASELINE = "#ccd3e0"
 
+# printed at the foot of every page, in both languages, on every site. An
+# organization's own footer line is set beside it, never in place of it:
+# removing the credit is a licensing conversation, not a setting.
+CREDIT = "Created by Lumen Reports"
+
 ARABIC_MONTHS = [
 	"يناير",
 	"فبراير",
@@ -932,7 +937,7 @@ def _css_string(text) -> str:
 	return str(text).replace("\\", "\\\\").replace('"', '\\"').replace("\n", " ")
 
 
-def _css(options, palette, footer="Lumen Reports"):
+def _css(options, palette, footer=""):
 	lang = options["lang"]
 	accent = palette[0]
 	page_size = PAPERS[options["paper"]]
@@ -943,6 +948,14 @@ def _css(options, palette, footer="Lumen Reports"):
 			f'@bottom-{side} {{ content: "{_t(lang, "page")} " counter(page) " {_t(lang, "of")} " counter(pages); '
 			'font-family: "IBM Plex Sans Arabic", "Plus Jakarta Sans"; font-size: 8pt; color: #98a1b2; }'
 		)
+	# the organization's own line sits in the middle of the foot. It is an
+	# addition, never a replacement: the credit below always prints
+	own_line = ""
+	if footer:
+		own_line = (
+			f'@bottom-center {{ content: "{_css_string(footer)}"; '
+			'font-family: "Plus Jakarta Sans", "IBM Plex Sans Arabic"; font-size: 8pt; color: #98a1b2; }'
+		)
 	brand_side = "right" if lang == "ar" else "left"
 	# the gap between a bar's label and the bar sits on the page's own side;
 	# a logical padding would follow an English label's direction instead
@@ -952,7 +965,8 @@ def _css(options, palette, footer="Lumen Reports"):
 @page {{
   size: {page_size};
   margin: 15mm 14mm 17mm;
-  @bottom-{brand_side} {{ content: "{_css_string(footer)}"; font-family: "Plus Jakarta Sans", "IBM Plex Sans Arabic"; font-size: 8pt; color: #98a1b2; }}
+  @bottom-{brand_side} {{ content: "{CREDIT}"; font-family: "Plus Jakarta Sans"; font-size: 8pt; color: #98a1b2; }}
+  {own_line}
   {numbers}
 }}
 html {{ font-size: 10pt; }}
@@ -974,7 +988,9 @@ html[lang="en"] [dir="rtl"]:not(.htxt):not(.hsub):not(.note-block) {{ text-align
 /* the organization's own letterhead band, printed once at the top of the
    document above the report's own header row */
 .lhead {{ margin-bottom: 10pt; }}
-.lhead img {{ width: 100%; max-height: 110pt; object-fit: contain; object-position: center; display: block; }}
+/* a wide letterhead fills the page width; a small one keeps its own size rather
+   than being blown up or floated in a tall empty band */
+.lhead img {{ max-width: 100%; max-height: 110pt; height: auto; display: block; margin-left: auto; margin-right: auto; }}
 
 .rhead {{ padding-bottom: 9pt; border-bottom: 2pt solid {accent}; margin-bottom: 12pt; }}
 .rhead td {{ vertical-align: middle; padding: 0; }}
@@ -1120,7 +1136,7 @@ def render_html(doc, options) -> str:
 	return _resolve_dirs(
 		f'<!doctype html><html lang="{lang}" dir="{direction}"><head><meta charset="utf-8">'
 		f"<title>{_e(doc.dashboard_title)}</title>"
-		f"<style>{_css(options, palette, identity['footer_text'] or 'Lumen Reports')}</style></head>"
+		f"<style>{_css(options, palette, identity['footer_text'])}</style></head>"
 		f"<body>{header}{summary}{_body(items, palette, lang)}</body></html>"
 	)
 

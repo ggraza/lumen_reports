@@ -307,6 +307,9 @@ export default {
   Replace: 'استبدال',
   'Pick colors from this image': 'استخراج الألوان من هذه الصورة',
   'Report footer line': 'سطر أسفل صفحة التقرير',
+  'For example: Confidential, for internal use': 'مثال: سري، للاستخدام الداخلي',
+  'Printed in the middle of the page foot, beside the Lumen Reports credit.':
+    'يطبع في منتصف أسفل الصفحة، بجانب حقوق لومن تقارير.',
   'Colors found': 'الألوان المستخرجة',
   'Chosen by AI from your identity': 'اختارها الذكاء الاصطناعي من هويتك',
   'Measured from the image': 'مقاسة من الصورة',

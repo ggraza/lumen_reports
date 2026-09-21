@@ -42,7 +42,7 @@
    "label": "Letterhead"
   },
   {
-   "description": "Printed at the bottom of every report page. Blank prints \"Lumen Reports\".",
+   "description": "Printed in the middle of every report page foot, beside the Lumen Reports credit, which always prints.",
    "fieldname": "footer_text",
    "fieldtype": "Data",
    "label": "Report Footer Line"

@@ -64,7 +64,8 @@ business, built on the doctypes you already have.
   on a widget is kept.
 - **Visual identity**, site-wide, at `/lumen/brand`. One saved look every dashboard
   and every report follows unless it sets its own: organization name, logo,
-  letterhead, the line at the foot of a printed page, and a default theme. A
+  letterhead, an own line in the middle of the page foot (beside the "Created by
+  Lumen Reports" credit, which always prints), and a default theme. A
   dashboard overrides it field by field, so changing the identity restyles
   everything that never overrode that field. Upload the identity as an image and
   Lumen reads the colors out of it, with the palette measured from the pixels and,

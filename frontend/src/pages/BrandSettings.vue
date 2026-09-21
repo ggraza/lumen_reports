@@ -76,9 +76,10 @@
               <input
                 v-model="form.footer_text"
                 type="text"
-                placeholder="Lumen Reports"
+                :placeholder="t('For example: Confidential, for internal use')"
                 maxlength="120"
               />
+              <p class="hint">{{ t('Printed in the middle of the page foot, beside the Lumen Reports credit.') }}</p>
             </div>
           </div>
         </div>
@@ -143,7 +144,11 @@
               <div class="series">
                 <i v-for="(color, i) in previewPalette" :key="i" :style="{ background: color }"></i>
               </div>
-              <div class="ft">{{ form.footer_text || 'Lumen Reports' }}</div>
+              <div class="ft">
+                <span>Created by Lumen Reports</span>
+                <span v-if="form.footer_text" class="own" dir="auto">{{ form.footer_text }}</span>
+                <span class="pg mono" dir="ltr">1 / 3</span>
+              </div>
             </div>
           </div>
         </div>
@@ -447,11 +452,11 @@ async function save() {
   padding: 14px 16px 10px;
 }
 .rprev .lh {
-  width: 100%;
+  max-width: 100%;
   max-height: 64px;
-  object-fit: contain;
+  height: auto;
   display: block;
-  margin-bottom: 10px;
+  margin: 0 auto 10px;
 }
 .rprev .rh {
   display: flex;
@@ -505,6 +510,20 @@ async function save() {
   padding-top: 7px;
   font-size: 9.5px;
   color: #98a1b2;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.rprev .ft .own {
+  flex: 1;
+  text-align: center;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rprev .ft .pg {
+  margin-inline-start: auto;
 }
 
 .savebar {
