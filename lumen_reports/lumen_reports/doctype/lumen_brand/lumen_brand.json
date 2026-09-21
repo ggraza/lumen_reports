@@ -1,0 +1,85 @@
+{
+ "actions": [],
+ "creation": "2026-09-21 09:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "identity_section",
+  "organization",
+  "logo",
+  "column_break_idy",
+  "letterhead",
+  "footer_text",
+  "theme_section",
+  "theme_json"
+ ],
+ "fields": [
+  {
+   "fieldname": "identity_section",
+   "fieldtype": "Section Break",
+   "label": "Identity"
+  },
+  {
+   "description": "Shown in the report header. Blank falls back to the default Company, then the site name.",
+   "fieldname": "organization",
+   "fieldtype": "Data",
+   "label": "Organization Name"
+  },
+  {
+   "description": "Report header logo. Must be a public file. Blank falls back to the Company logo.",
+   "fieldname": "logo",
+   "fieldtype": "Attach Image",
+   "label": "Logo"
+  },
+  {
+   "fieldname": "column_break_idy",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "A full width band printed above the report title. Must be a public file.",
+   "fieldname": "letterhead",
+   "fieldtype": "Attach Image",
+   "label": "Letterhead"
+  },
+  {
+   "description": "Printed at the bottom of every report page. Blank prints \"Lumen Reports\".",
+   "fieldname": "footer_text",
+   "fieldtype": "Data",
+   "label": "Report Footer Line"
+  },
+  {
+   "fieldname": "theme_section",
+   "fieldtype": "Section Break",
+   "label": "Default Theme"
+  },
+  {
+   "description": "The colors every dashboard and report follows unless it sets its own. Edited from Lumen Reports, not here.",
+   "fieldname": "theme_json",
+   "fieldtype": "Code",
+   "label": "Theme",
+   "options": "JSON"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-09-21 09:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Lumen Reports",
+ "name": "Lumen Brand",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "read": 1,
+   "role": "System Manager",
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "Lumen Manager",
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC"
+}

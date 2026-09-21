@@ -5,10 +5,12 @@
   <div class="tp">
     <div class="tp-head">
       <div>
-        <div class="tp-title">{{ t('Theme') }}</div>
-        <div class="tp-sub">{{ t('Applies to this dashboard only') }}</div>
+        <div class="tp-title">{{ forBrand ? t('Default theme') : t('Theme') }}</div>
+        <div class="tp-sub">
+          {{ forBrand ? t('Followed by every dashboard that sets no theme of its own') : t('Applies to this dashboard only') }}
+        </div>
       </div>
-      <button class="x" :title="t('Close')" @click="$emit('close')">
+      <button v-if="closable" class="x" :title="t('Close')" @click="$emit('close')">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18" /></svg>
       </button>
     </div>
@@ -20,7 +22,7 @@
           <button
             class="preset"
             :class="{ on: !form.preset }"
-            :title="t('Follow the app theme')"
+            :title="followTitle"
             @click="pick('')"
           >
             <span class="strip app">
@@ -28,7 +30,7 @@
               <i style="flex: 1; background: var(--blue)"></i>
               <i style="flex: 1; background: var(--panel)"></i>
             </span>
-            <span class="nm">{{ t('App default') }}</span>
+            <span class="nm">{{ followLabel }}</span>
           </button>
           <button
             v-for="p in THEME_PRESETS"
@@ -48,9 +50,9 @@
       </div>
 
       <div class="grp">
-        <label class="eyebrow">{{ t('Brand color') }}</label>
+        <label class="eyebrow">{{ t('Primary color') }}</label>
         <div class="brandrow">
-          <input type="color" class="swatch" :value="brandValue" @input="onBrand($event.target.value)" />
+          <input type="color" class="swatch" :value="brandValue" @input="onColor('brand', $event.target.value)" />
           <input
             type="text"
             class="hex mono"
@@ -58,9 +60,28 @@
             :value="form.brand"
             :placeholder="t('Preset default')"
             spellcheck="false"
-            @change="onBrand($event.target.value.trim())"
+            @change="onColor('brand', $event.target.value.trim())"
           />
-          <button v-if="form.brand" class="x sm" :title="t('Back to the preset color')" @click="onBrand('')">
+          <button v-if="form.brand" class="x sm" :title="t('Back to the preset color')" @click="onColor('brand', '')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5" /></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="grp">
+        <label class="eyebrow">{{ t('Secondary color') }}</label>
+        <div class="brandrow">
+          <input type="color" class="swatch" :value="secondaryValue" @input="onColor('secondary', $event.target.value)" />
+          <input
+            type="text"
+            class="hex mono"
+            dir="ltr"
+            :value="form.secondary"
+            :placeholder="t('Preset default')"
+            spellcheck="false"
+            @change="onColor('secondary', $event.target.value.trim())"
+          />
+          <button v-if="form.secondary" class="x sm" :title="t('Back to the preset color')" @click="onColor('secondary', '')">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5" /></svg>
           </button>
         </div>
@@ -94,7 +115,7 @@
             <button
               v-for="d in DENSITIES"
               :key="d.id"
-              :class="{ on: (form.density || 'comfort') === d.id }"
+              :class="{ on: (resolved.density || 'comfort') === d.id }"
               @click="set('density', d.id)"
             >
               {{ t(d.label) }}
@@ -110,7 +131,7 @@
             v-for="s in SURFACES"
             :key="s.id"
             class="surface"
-            :class="{ on: (form.surface || 'solid') === s.id }"
+            :class="{ on: (resolved.surface || 'solid') === s.id }"
             :style="surfaceStyle(s.id)"
             :title="t(s.label)"
             @click="set('surface', s.id)"
@@ -122,7 +143,7 @@
 
       <div class="grp">
         <label class="eyebrow">{{ t('Font') }}</label>
-        <select class="sel" :value="form.font" @change="set('font', $event.target.value)">
+        <select class="sel" :value="resolved.font" @change="set('font', $event.target.value)">
           <option v-for="f in FONTS" :key="f.id" :value="f.id">{{ t(f.label) }}</option>
         </select>
       </div>
@@ -138,7 +159,7 @@
       </div>
 
       <button v-if="!isDefaultTheme(form)" class="lbtn danger reset" @click="resetAll">
-        {{ t('Reset to the app theme') }}
+        {{ resetLabel }}
       </button>
     </div>
   </div>
@@ -155,16 +176,38 @@ import {
   THEME_PRESETS,
   findPreset,
   isDefaultTheme,
+  mergeTheme,
   presetSwatch,
   themeVars,
 } from '@/lib/dashboardTheme'
+import { brandTheme } from '@/lib/brand'
 import { t } from '@/lib/i18n'
 import '@/components/builder/controls.css'
 
-const props = defineProps({ theme: { type: Object, default: () => ({}) } })
+const props = defineProps({
+  theme: { type: Object, default: () => ({}) },
+  // editing the site's identity rather than one dashboard: there is no layer
+  // under it, and the wording says so
+  forBrand: { type: Boolean, default: false },
+  closable: { type: Boolean, default: true },
+})
 const emit = defineEmits(['apply', 'close'])
 
 const form = reactive({ ...DEFAULT_THEME, ...(props.theme || {}) })
+
+// the layer this theme sits on: the identity for a dashboard, nothing for the
+// identity itself. Previews are drawn through it, so what the panel shows is
+// what the dashboard will look like
+const under = computed(() => (props.forBrand ? {} : brandTheme.value))
+const identitySet = computed(() => !props.forBrand && !isDefaultTheme(brandTheme.value))
+const followLabel = computed(() => (identitySet.value ? t('Identity default') : t('App default')))
+const followTitle = computed(() =>
+  identitySet.value ? t("Follow the site's visual identity") : t('Follow the app theme')
+)
+const resetLabel = computed(() => {
+  if (props.forBrand) return t('Clear the default theme')
+  return identitySet.value ? t('Reset to the visual identity') : t('Reset to the app theme')
+})
 
 watch(
   () => props.theme,
@@ -172,16 +215,20 @@ watch(
   { deep: true }
 )
 
-const preset = computed(() => findPreset(form.preset))
-const effectiveCard = computed(() => form.card || preset.value?.card || 'outlined')
-const radiusValue = computed(() =>
-  form.radius === null || form.radius === undefined || form.radius === '' ? 16 : Number(form.radius)
-)
-const brandValue = computed(() => form.brand || preset.value?.vars['--blue'] || '#1463ff')
+// what this theme actually resolves to once the layer under it shows through
+const resolved = computed(() => mergeTheme(form, under.value))
+const preset = computed(() => findPreset(resolved.value.preset))
+const effectiveCard = computed(() => resolved.value.card || preset.value?.card || 'outlined')
+const radiusValue = computed(() => {
+  const value = resolved.value.radius
+  return value === null || value === undefined || value === '' ? 16 : Number(value)
+})
+const brandValue = computed(() => resolved.value.brand || preset.value?.vars['--blue'] || '#1463ff')
+const secondaryValue = computed(() => resolved.value.secondary || preset.value?.vars['--c2'] || '#0f9d7a')
 
 // the eight categorical colors as this theme would draw them
 const previewPalette = computed(() => {
-  const vars = themeVars(form)
+  const vars = themeVars(resolved.value)
   const slots = ['--c1', '--c2', '--c3', '--c4', '--c5', '--c6', '--c7', '--c8']
   return slots.map((s) => vars[s] || `var(${s})`)
 })
@@ -200,8 +247,8 @@ function pick(id) {
   push()
 }
 
-function onBrand(value) {
-  form.brand = value || ''
+function onColor(key, value) {
+  form[key] = value || ''
   push()
 }
 
@@ -211,7 +258,7 @@ function resetAll() {
 }
 
 function surfaceStyle(id) {
-  const vars = themeVars({ ...form, surface: id })
+  const vars = themeVars({ ...resolved.value, surface: id })
   return { background: vars['--canvas-bg'] || vars['--bg'] || 'var(--bg)' }
 }
 </script>

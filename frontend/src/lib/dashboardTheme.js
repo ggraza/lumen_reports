@@ -10,18 +10,33 @@
  * around them stays consistent. Charts read their colors from the same
  * container (see lib/theme.js), so a preset recolors the data too.
  *
- * An empty theme means "follow the app", which is what every dashboard built
+ * An empty theme means "follow the layer below": the site's visual identity if
+ * one is set, otherwise the app itself. That is what every dashboard built
  * before theming had, and what a new one starts with.
  */
 
 export const DEFAULT_THEME = {
   preset: '',
   brand: '',
+  secondary: '',
   card: '',
   radius: null,
   density: '',
   font: '',
   surface: '',
+}
+
+/**
+ * One theme laid over another, field by field: anything the top layer leaves
+ * unset shows the layer below. A radius of 0 is a real choice, so this asks
+ * whether a field is empty rather than whether it is truthy.
+ */
+export function mergeTheme(theme, base) {
+  const out = { ...DEFAULT_THEME, ...(base || {}) }
+  Object.entries(theme || {}).forEach(([key, value]) => {
+    if (value !== null && value !== undefined && value !== '') out[key] = value
+  })
+  return out
 }
 
 export const FONTS = [
@@ -341,6 +356,10 @@ export function themeVars(theme) {
     vars['--blue-300'] = `color-mix(in srgb, ${t.brand} 55%, #fff)`
     vars['--c1'] = t.brand
   }
+
+  // the second color of the pair takes the second series slot, so a two-color
+  // identity draws a two-series chart in its own colors
+  if (t.secondary) vars['--c2'] = t.secondary
 
   const card = t.card || preset?.card
   if (card && CARD_VARS[card]) Object.assign(vars, CARD_VARS[card])

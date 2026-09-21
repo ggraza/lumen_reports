@@ -3,7 +3,7 @@
 # Proprietary and confidential. See license.txt. "Lumen Reports" is a trademark of Lumen Solutions.
 import frappe
 
-from lumen_reports import report
+from lumen_reports import brand, report
 
 no_cache = 1
 
@@ -42,6 +42,10 @@ def get_context(context):
 		# PDF reports and schedules need WeasyPrint, absent on v14; the SPA hides
 		# their entry points when this is false
 		"reports_enabled": report.reports_supported(),
+		# the site's visual identity travels with the page rather than being
+		# fetched, so a themed dashboard paints in its own colors on first draw
+		# instead of flashing the app's blue first
+		"lumen_brand": {**brand.get_brand(), "can_manage": brand.can_manage()},
 	}
 
 

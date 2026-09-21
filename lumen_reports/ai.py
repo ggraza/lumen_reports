@@ -454,13 +454,19 @@ class _NoSuchModel(Exception):
 		super().__init__(detail)
 
 
-def _generate_once(prompt: str, key: str, model: str) -> dict:
+def _generate_once(prompt: str, key: str, model: str, image: dict | None = None) -> dict:
 	"""One Gemini call, JSON-mode. Returns the parsed JSON object.
 
 	The key travels in the x-goog-api-key header — never in the URL — so it
-	can't leak through exception messages, logs, or proxies."""
+	can't leak through exception messages, logs, or proxies.
+
+	`image` is an optional {"mime_type", "data"} part, base64 already, for the
+	calls that look at a picture rather than at data."""
+	parts = [{"text": prompt}]
+	if image:
+		parts.append({"inline_data": {"mime_type": image["mime_type"], "data": image["data"]}})
 	body = {
-		"contents": [{"role": "user", "parts": [{"text": prompt}]}],
+		"contents": [{"role": "user", "parts": parts}],
 		"generationConfig": {"responseMimeType": "application/json", "temperature": 0.2},
 	}
 	try:
@@ -496,7 +502,7 @@ def _generate_once(prompt: str, key: str, model: str) -> dict:
 		frappe.throw(_("The AI returned an unreadable response. Try rephrasing your question."))
 
 
-def _generate(prompt: str, key: str, model: str) -> dict:
+def _generate(prompt: str, key: str, model: str, image: dict | None = None) -> dict:
 	"""_generate_once, hardened against the two refusals Google hands out under
 	load: a dry daily quota (429) and an overloaded model (503). Both step
 	sideways to another model rather than killing the whole request.
@@ -514,7 +520,7 @@ def _generate(prompt: str, key: str, model: str) -> dict:
 		waits = RETRY_WAITS if position == 0 else ()
 		for attempt in range(len(waits) + 1):
 			try:
-				return _generate_once(prompt, key, candidate)
+				return _generate_once(prompt, key, candidate, image)
 			except _Busy as busy:
 				problem = busy
 				if attempt < len(waits):

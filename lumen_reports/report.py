@@ -29,6 +29,8 @@ import re
 import frappe
 from frappe import _
 
+from lumen_reports import brand
+
 from lumen_reports import api, query_engine
 
 _WEASYPRINT = None
@@ -279,11 +281,13 @@ def _label(label, grain, lang) -> str:
 
 
 def _palette(theme) -> list:
+	"""The eight series colors. The theme's own two lead the rest."""
 	theme = theme or {}
 	colors = list(PALETTES.get(theme.get("preset"), PALETTES["default"]))
-	brand = str(theme.get("brand") or "")
-	if len(brand) == 7 and brand.startswith("#"):
-		colors[0] = brand
+	for slot, key in ((0, "brand"), (1, "secondary")):
+		value = str(theme.get(key) or "")
+		if len(value) == 7 and value.startswith("#"):
+			colors[slot] = value
 	return colors
 
 
@@ -766,12 +770,17 @@ def _safe_fetcher(url, *args, **kwargs):
 
 
 def _company():
-	name = frappe.defaults.get_user_default("Company") or frappe.defaults.get_global_default("company")
-	logo = None
-	if name and frappe.db.exists("DocType", "Company") and frappe.db.exists("Company", name):
-		logo = _image_src(frappe.db.get_value("Company", name, "company_logo"))
-	if not name:
-		name = frappe.db.get_single_value("Website Settings", "app_name") or frappe.local.site
+	"""Who the report is from: the saved identity first, then ERPNext's Company."""
+	identity = brand.get_brand()
+	name = identity["organization"]
+	logo = _image_src(identity["logo"])
+
+	default = None
+	if not name or not logo:
+		default = frappe.defaults.get_user_default("Company") or frappe.defaults.get_global_default("company")
+	if default and not logo and frappe.db.exists("DocType", "Company") and frappe.db.exists("Company", default):
+		logo = _image_src(frappe.db.get_value("Company", default, "company_logo"))
+	name = name or default or frappe.db.get_single_value("Website Settings", "app_name") or frappe.local.site
 	return name, logo
 
 
@@ -918,7 +927,12 @@ def _body(items, palette, lang):
 	return "\n".join(out)
 
 
-def _css(options, palette):
+def _css_string(text) -> str:
+	"""A CSS string literal for a generated-content slot."""
+	return str(text).replace("\\", "\\\\").replace('"', '\\"').replace("\n", " ")
+
+
+def _css(options, palette, footer="Lumen Reports"):
 	lang = options["lang"]
 	accent = palette[0]
 	page_size = PAPERS[options["paper"]]
@@ -938,7 +952,7 @@ def _css(options, palette):
 @page {{
   size: {page_size};
   margin: 15mm 14mm 17mm;
-  @bottom-{brand_side} {{ content: "Lumen Reports"; font-family: "Plus Jakarta Sans"; font-size: 8pt; color: #98a1b2; }}
+  @bottom-{brand_side} {{ content: "{_css_string(footer)}"; font-family: "Plus Jakarta Sans", "IBM Plex Sans Arabic"; font-size: 8pt; color: #98a1b2; }}
   {numbers}
 }}
 html {{ font-size: 10pt; }}
@@ -956,6 +970,11 @@ html[lang="ar"] body {{ font-family: "IBM Plex Sans Arabic", "Plus Jakarta Sans"
    column; its punctuation is placed by its own direction */
 html[lang="ar"] [dir="ltr"]:not(.htxt):not(.hsub):not(.note-block) {{ text-align: right; }}
 html[lang="en"] [dir="rtl"]:not(.htxt):not(.hsub):not(.note-block) {{ text-align: left; }}
+
+/* the organization's own letterhead band, printed once at the top of the
+   document above the report's own header row */
+.lhead {{ margin-bottom: 10pt; }}
+.lhead img {{ width: 100%; max-height: 110pt; object-fit: contain; object-position: center; display: block; }}
 
 .rhead {{ padding-bottom: 9pt; border-bottom: 2pt solid {accent}; margin-bottom: 12pt; }}
 .rhead td {{ vertical-align: middle; padding: 0; }}
@@ -1060,7 +1079,10 @@ html[lang="ar"] .eyebrow {{ letter-spacing: 0; text-transform: none; }}
 def render_html(doc, options) -> str:
 	options = _options(options)
 	lang = options["lang"]
-	theme = frappe.parse_json(doc.theme_json or "{}") or {}
+	identity = brand.get_brand()
+	# the dashboard's own theme over the site's identity, field by field, so a
+	# board that set nothing still prints in the organization's colors
+	theme = brand.resolve_theme(frappe.parse_json(doc.theme_json or "{}") or {})
 	palette = _palette(theme)
 	items = _collect(doc, options["filter_values"])
 	# a board that opens with a heading repeating its own title would print
@@ -1082,8 +1104,10 @@ def render_html(doc, options) -> str:
 		# a table, not flex: WeasyPrint sizes a flex title to its narrowest
 		# word in left-to-right pages and breaks "Retail Sales" in two
 		logo_cell = f'<td class="logo">{logo_html}</td>' if logo_html else ""
+		letterhead = _image_src(identity["letterhead"])
+		band = f'<div class="lhead"><img src="{_e(letterhead)}" alt=""/></div>' if letterhead else ""
 		header = (
-			f'<div class="rhead"><table><tr>{logo_cell}'
+			f'{band}<div class="rhead"><table><tr>{logo_cell}'
 			f'<td class="who"><div class="rtitle" dir="auto">{_e(doc.dashboard_title)}</div>'
 			f'<div class="rsub" dir="auto">{_e(sub)}</div></td>'
 			f'<td class="rmeta"><b dir="auto">{_e(company)}</b>'
@@ -1095,7 +1119,8 @@ def render_html(doc, options) -> str:
 	direction = "rtl" if lang == "ar" else "ltr"
 	return _resolve_dirs(
 		f'<!doctype html><html lang="{lang}" dir="{direction}"><head><meta charset="utf-8">'
-		f"<title>{_e(doc.dashboard_title)}</title><style>{_css(options, palette)}</style></head>"
+		f"<title>{_e(doc.dashboard_title)}</title>"
+		f"<style>{_css(options, palette, identity['footer_text'] or 'Lumen Reports')}</style></head>"
 		f"<body>{header}{summary}{_body(items, palette, lang)}</body></html>"
 	)
 

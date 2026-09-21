@@ -22,6 +22,22 @@
             </svg>
             {{ t('Ask AI') }}
           </router-link>
+          <router-link
+            v-if="brand.can_manage"
+            to="/brand"
+            class="theme-btn"
+            :title="t('Visual identity')"
+            style="text-decoration: none"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 3a9 9 0 0 0 0 18c1.1 0 2-.9 2-2 0-.5-.2-1-.6-1.4-.3-.4-.4-.8-.4-1.1 0-.8.7-1.5 1.5-1.5H16a5 5 0 0 0 5-5c0-3.9-4-7-9-7Z" />
+              <circle cx="7.6" cy="12.2" r="1.1" fill="currentColor" stroke="none" />
+              <circle cx="9.6" cy="7.8" r="1.1" fill="currentColor" stroke="none" />
+              <circle cx="14.4" cy="7.8" r="1.1" fill="currentColor" stroke="none" />
+              <circle cx="17.2" cy="11" r="1.1" fill="currentColor" stroke="none" />
+            </svg>
+            {{ t('Identity') }}
+          </router-link>
           <!-- each language names itself, so the switch is findable from either side -->
           <button class="theme-btn" :title="lang === 'ar' ? 'English' : 'العربية'" @click="setLang(lang === 'ar' ? 'en' : 'ar')">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -56,6 +72,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { call } from 'frappe-ui'
 import { theme, toggleTheme, applyTheme } from '@/lib/theme'
+import { brand } from '@/lib/brand'
 import { applyLang, lang, setLang, t } from '@/lib/i18n'
 
 applyTheme()

@@ -259,6 +259,8 @@ export default {
   Sand: 'رملي',
   Paper: 'ورقي',
   'Brand color': 'لون العلامة التجارية',
+  'Primary color': 'اللون الأساسي',
+  'Secondary color': 'اللون الثانوي',
   'Preset default': 'افتراضي النمط',
   'Back to the preset color': 'العودة إلى لون النمط',
   'Card style': 'نمط البطاقة',
@@ -283,6 +285,53 @@ export default {
   'Charts follow the theme. A widget with its own accent keeps it, so a highlight you set by hand survives a preset change.':
     'تتبع الرسوم ألوان السمة. العنصر الذي اخترت له لونا يحتفظ به، فيبقى التمييز الذي حددته بنفسك عند تغيير النمط.',
   'Reset to the app theme': 'العودة إلى سمة التطبيق',
+
+  // ---- visual identity
+  'Visual identity': 'الهوية البصرية',
+  Identity: 'الهوية',
+  'One saved look. Every dashboard and every report follows it unless it sets its own.':
+    'مظهر واحد محفوظ. كل لوحة وكل تقرير يتبعه ما لم يحدد مظهرا خاصا به.',
+  'Back to dashboards': 'العودة إلى اللوحات',
+  'Only a Lumen Manager can change the visual identity. Ask your administrator.':
+    'تغيير الهوية البصرية متاح لمدير لومن فقط. تواصل مع مدير النظام.',
+  'What a printed report says it comes from': 'ما يظهر في التقرير المطبوع كجهة إصدار',
+  'Organization name': 'اسم المنشأة',
+  'Blank uses the Company on this site': 'تركه فارغا يستخدم الشركة المعرفة في الموقع',
+  Logo: 'الشعار',
+  'Printed beside the report title. A PNG or JPG with a transparent or white background reads best.':
+    'يطبع بجانب عنوان التقرير. الأفضل صورة PNG أو JPG بخلفية شفافة أو بيضاء.',
+  Letterhead: 'الترويسة',
+  'A full width band printed at the top of the first page, above the title.':
+    'شريط بعرض الصفحة يطبع أعلى الصفحة الأولى، فوق العنوان.',
+  Upload: 'رفع',
+  Replace: 'استبدال',
+  'Pick colors from this image': 'استخراج الألوان من هذه الصورة',
+  'Report footer line': 'سطر أسفل صفحة التقرير',
+  'Colors found': 'الألوان المستخرجة',
+  'Chosen by AI from your identity': 'اختارها الذكاء الاصطناعي من هويتك',
+  'Measured from the image': 'مقاسة من الصورة',
+  'The image carries one color, so the second was built to sit beside it. Change it if you have a real one.':
+    'الصورة تحمل لونا واحدا، فتم توليد لون ثان يناسبه. غيره إذا كان لديك لون ثانوي معتمد.',
+  'Use these colors': 'اعتماد هذه الألوان',
+  'How the top of a printed report will look': 'شكل أعلى التقرير المطبوع',
+  'Your organization': 'اسم منشأتك',
+  'Uploading...': 'جاري الرفع...',
+  'Reading the colors...': 'جاري قراءة الألوان...',
+  'Saving...': 'جاري الحفظ...',
+  'That image could not be uploaded.': 'تعذر رفع هذه الصورة.',
+  'Those colors could not be read.': 'تعذرت قراءة الألوان.',
+  'That could not be saved.': 'تعذر الحفظ.',
+  'Saved. New pages will follow it.': 'تم الحفظ. الصفحات الجديدة ستتبعه.',
+  'A dashboard with a theme of its own keeps it.': 'اللوحة التي لها سمة خاصة تحتفظ بها.',
+  'Undo changes': 'التراجع عن التغييرات',
+  'Save identity': 'حفظ الهوية',
+  'Default theme': 'السمة الافتراضية',
+  'Followed by every dashboard that sets no theme of its own':
+    'تتبعها كل لوحة لا تحدد سمة خاصة بها',
+  'Identity default': 'افتراضي الهوية',
+  "Follow the site's visual identity": 'اتباع الهوية البصرية للموقع',
+  'Reset to the visual identity': 'العودة إلى الهوية البصرية',
+  'Clear the default theme': 'مسح السمة الافتراضية',
 
   // ---- dashboard settings
   Title: 'العنوان',

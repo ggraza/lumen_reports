@@ -25,6 +25,11 @@ const routes = [
     component: () => import('@/pages/AskAI.vue'),
   },
   {
+    path: '/brand',
+    name: 'BrandSettings',
+    component: () => import('@/pages/BrandSettings.vue'),
+  },
+  {
     path: '/dashboard/:slug',
     name: 'DashboardView',
     component: () => import('@/pages/DashboardView.vue'),

@@ -9,7 +9,8 @@
 
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { themeVars, findPreset, isDefaultTheme } from '@/lib/dashboardTheme'
+import { themeVars, findPreset, isDefaultTheme, mergeTheme } from '@/lib/dashboardTheme'
+import { brandTheme } from '@/lib/brand'
 import { themeScope, themeVersion } from '@/lib/theme'
 
 const props = defineProps({
@@ -20,12 +21,14 @@ const props = defineProps({
 })
 
 const el = ref(null)
-const active = computed(() => !isDefaultTheme(props.theme))
+// what the dashboard sets wins; the rest comes from the site's identity
+const resolved = computed(() => mergeTheme(props.theme, brandTheme.value))
+const active = computed(() => !isDefaultTheme(resolved.value))
 
 const scopeStyle = computed(() => {
   if (!active.value) return {}
-  const style = { ...themeVars(props.theme) }
-  const preset = findPreset(props.theme?.preset)
+  const style = { ...themeVars(resolved.value) }
+  const preset = findPreset(resolved.value.preset)
   if (preset) style.colorScheme = preset.base
   if (props.paint) {
     style.background = style['--canvas-bg'] || style['--bg'] || ''
@@ -48,7 +51,7 @@ onBeforeUnmount(() => {
 })
 
 watch(
-  () => props.theme,
+  resolved,
   async () => {
     register()
     // let the new custom properties land before charts re-read them

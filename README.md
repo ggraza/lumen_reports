@@ -58,9 +58,18 @@ business, built on the doctypes you already have.
   Ctrl+Shift+Z), duplicate (Ctrl+D), and autosave for drafts. Published dashboards
   change only on an explicit Save changes.
 - **Themes, per dashboard.** Six presets (Lumen Light, Lumen Dark, Emerald, Midnight,
-  Sand, Paper), plus brand color, card style (flat, outlined, elevated, glass), corner
-  radius, density, background (solid, gradient, brand tint) and font. Charts read
-  their colors from the dashboard's theme. A color set by hand on a widget is kept.
+  Sand, Paper), plus primary and secondary color, card style (flat, outlined,
+  elevated, glass), corner radius, density, background (solid, gradient, brand tint)
+  and font. Charts read their colors from the dashboard's theme. A color set by hand
+  on a widget is kept.
+- **Visual identity**, site-wide, at `/lumen/brand`. One saved look every dashboard
+  and every report follows unless it sets its own: organization name, logo,
+  letterhead, the line at the foot of a printed page, and a default theme. A
+  dashboard overrides it field by field, so changing the identity restyles
+  everything that never overrode that field. Upload the identity as an image and
+  Lumen reads the colors out of it, with the palette measured from the pixels and,
+  when a Gemini key is set, the primary and secondary picked by the AI. Nothing is
+  applied until the person confirms it. Needs Lumen Manager or System Manager.
 - **Form follows data.** The chart type that suits the numbers is chosen by default,
   and the variant bar offers only the alternatives that also make sense.
 
@@ -94,8 +103,9 @@ business, built on the doctypes you already have.
   showing its share of the whole.
 - **Computed metrics.** Values that exist in no field: average check-in time, hours
   worked, payment terms in days, outstanding as a percentage of invoiced.
-- **PDF reports** at `/lumen/dashboard/<slug>/report`. A4 or Letter, a company header
-  (the default Company's name and logo, where set), page numbers, the dashboard's
+- **PDF reports** at `/lumen/dashboard/<slug>/report`. A4 or Letter, a header carrying
+  the visual identity (organization name, logo and optional letterhead, falling back
+  to the default Company where no identity is set), page numbers, the dashboard's
   current filters, an optional AI executive summary, and an English or Arabic
   edition. Rendered on the server with WeasyPrint, which ships with Frappe. Fonts are
   bundled, and the renderer fetches nothing from outside the site.
