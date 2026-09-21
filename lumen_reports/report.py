@@ -965,7 +965,7 @@ def _css(options, palette, footer=""):
 @page {{
   size: {page_size};
   margin: 15mm 14mm 17mm;
-  @bottom-{brand_side} {{ content: "{CREDIT}"; font-family: "Plus Jakarta Sans"; font-size: 8pt; color: #98a1b2; }}
+  @bottom-{brand_side} {{ content: "{CREDIT}"; font-family: "Plus Jakarta Sans", "IBM Plex Sans Arabic"; font-size: 8pt; color: #98a1b2; }}
   {own_line}
   {numbers}
 }}
@@ -977,7 +977,7 @@ body {{
   line-height: 1.45;
 }}
 html[lang="ar"] body {{ font-family: "IBM Plex Sans Arabic", "Plus Jakarta Sans", sans-serif; }}
-.num {{ font-family: "IBM Plex Mono", "Plus Jakarta Sans", monospace; font-variant-numeric: tabular-nums; }}
+.num {{ font-family: "IBM Plex Mono", "IBM Plex Sans Arabic", "Plus Jakarta Sans", monospace; font-variant-numeric: tabular-nums; }}
 .muted {{ color: #98a1b2; }}
 /* a cell or label keeps the page's alignment even when its own text runs the
    other way, so an English name on an Arabic page still lines up with its
