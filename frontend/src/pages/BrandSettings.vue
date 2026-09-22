@@ -81,6 +81,26 @@
               />
               <p class="hint">{{ t('Printed in the middle of the page foot, beside the Lumen Reports credit.') }}</p>
             </div>
+
+            <div class="lfield">
+              <label>{{ t('Report font, Latin') }}</label>
+              <select v-model="form.report_font">
+                <option v-for="f in LATIN_FONTS" :key="f" :value="f">{{ f }}</option>
+              </select>
+            </div>
+
+            <div class="lfield">
+              <label>{{ t('Report font, Arabic') }}</label>
+              <select v-model="form.report_font_ar">
+                <option v-for="f in ARABIC_FONTS" :key="f" :value="f">{{ f }}</option>
+              </select>
+              <p class="fontspec" dir="rtl" :style="{ fontFamily: form.report_font_ar }">
+                الإجمالي المستحق · تقرير المبيعات · 1,090,597
+              </p>
+              <p class="hint">
+                {{ t('Arabic text in the PDF uses this one. A Latin font has no Arabic letters, so every Arabic line follows this choice.') }}
+              </p>
+            </div>
           </div>
         </div>
 
@@ -201,12 +221,18 @@ const saved = ref(false)
 const found = ref(null)
 const chosen = reactive({ primary: '', secondary: '' })
 
+// the faces bundled with the app, mirroring REPORT_FONTS / REPORT_FONTS_AR in brand.py
+const LATIN_FONTS = ['Plus Jakarta Sans', 'Inter']
+const ARABIC_FONTS = ['IBM Plex Sans Arabic', 'Cairo', 'Tajawal', 'Almarai', 'Noto Naskh Arabic']
+
 function blank() {
   return {
     organization: brand.organization,
     logo: brand.logo,
     letterhead: brand.letterhead,
     footer_text: brand.footer_text,
+    report_font: brand.report_font || LATIN_FONTS[0],
+    report_font_ar: brand.report_font_ar || ARABIC_FONTS[0],
     theme: { ...DEFAULT_THEME, ...(brand.theme || {}) },
   }
 }
@@ -290,6 +316,8 @@ async function save() {
       logo: form.logo,
       letterhead: form.letterhead,
       footer_text: form.footer_text,
+      report_font: form.report_font,
+      report_font_ar: form.report_font_ar,
       theme: form.theme,
     })
     saved.value = true
@@ -378,6 +406,38 @@ async function save() {
   line-height: 1.55;
   color: var(--muted);
   font-weight: 500;
+}
+/* the same faces the PDF prints with, served from the app, so the specimen below the
+   picker is the real thing and not the browser's guess */
+@font-face {
+  font-family: 'IBM Plex Sans Arabic';
+  src: url('/assets/lumen_reports/fonts/ibm-plex-sans-arabic-arabic-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Cairo';
+  src: url('/assets/lumen_reports/fonts/cairo-arabic-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Tajawal';
+  src: url('/assets/lumen_reports/fonts/tajawal-arabic-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Almarai';
+  src: url('/assets/lumen_reports/fonts/almarai-arabic-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Noto Naskh Arabic';
+  src: url('/assets/lumen_reports/fonts/noto-naskh-arabic-arabic-400-normal.woff2') format('woff2');
+}
+.fontspec {
+  margin: 2px 0 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border-2);
+  border-radius: 10px;
+  background: var(--panel);
+  color: var(--ink);
+  font-size: 15px;
+  line-height: 1.7;
 }
 .imgfield {
   display: flex;

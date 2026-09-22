@@ -33,6 +33,11 @@ DENSITIES = ("compact", "comfort")
 SURFACES = ("solid", "gradient", "tint")
 FONTS = ("", "system", "serif", "mono")
 
+# The printed report's two faces. Kept here, not in the dashboard theme, because a theme is
+# per dashboard while a report's typography is the organization's own.
+REPORT_FONTS = ("Plus Jakarta Sans", "Inter")
+REPORT_FONTS_AR = ("IBM Plex Sans Arabic", "Cairo", "Tajawal", "Almarai", "Noto Naskh Arabic")
+
 MAX_RADIUS = 28
 HEX = re.compile(r"^#[0-9a-fA-F]{6}$")
 
@@ -68,12 +73,16 @@ def get_brand() -> dict:
 	"""The saved identity. Never raises: a report must print without one."""
 	doc = _doc()
 	if not doc:
-		return {"organization": "", "logo": "", "letterhead": "", "footer_text": "", "theme": dict(EMPTY_THEME)}
+		return {"organization": "", "logo": "", "letterhead": "", "footer_text": "",
+			"report_font": REPORT_FONTS[0], "report_font_ar": REPORT_FONTS_AR[0],
+			"theme": dict(EMPTY_THEME)}
 	return {
 		"organization": str(doc.organization or ""),
 		"logo": str(doc.logo or ""),
 		"letterhead": str(doc.letterhead or ""),
 		"footer_text": str(doc.footer_text or ""),
+		"report_font": _font(doc.get("report_font"), REPORT_FONTS),
+		"report_font_ar": _font(doc.get("report_font_ar"), REPORT_FONTS_AR),
 		"theme": _clean_theme(frappe.parse_json(doc.theme_json or "{}") or {}),
 	}
 
@@ -103,6 +112,12 @@ def has_identity() -> bool:
 
 
 # ---------------------------------------------------------------- validation
+
+
+def _font(value, allowed) -> str:
+	"""A font name is written into a stylesheet, so only a bundled one is ever let through."""
+	value = str(value or "").strip()
+	return value if value in allowed else allowed[0]
 
 
 def _clean_theme(raw) -> dict:
@@ -205,6 +220,8 @@ def save_identity(payload) -> dict:
 	doc.footer_text = str(data.get("footer_text") or "").strip()[:120]
 	doc.logo = _clean_file(data.get("logo"), _("Logo"))
 	doc.letterhead = _clean_file(data.get("letterhead"), _("Letterhead"))
+	doc.report_font = _font(data.get("report_font"), REPORT_FONTS)
+	doc.report_font_ar = _font(data.get("report_font_ar"), REPORT_FONTS_AR)
 	doc.theme_json = json.dumps(_clean_theme(data.get("theme")))
 	doc.save()
 	frappe.clear_document_cache("Lumen Brand", "Lumen Brand")

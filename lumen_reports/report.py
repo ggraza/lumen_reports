@@ -741,16 +741,46 @@ def _font_dir():
 	return frappe.get_app_path("lumen_reports", "public", "fonts")
 
 
-def _font_faces():
+# Every face the report can print, bundled with the app so a report looks the same on any
+# bench, online or not. A Latin family carries no Arabic glyphs and an Arabic subset carries no
+# Latin ones, which is why a report always names one of each and never a single family.
+LATIN_FONTS = {
+	"Plus Jakarta Sans": ((400, "plus-jakarta-sans-latin-400-normal.woff2"),
+	                      (700, "plus-jakarta-sans-latin-700-normal.woff2"),
+	                      (800, "plus-jakarta-sans-latin-800-normal.woff2")),
+	"Inter": ((400, "inter-latin-400-normal.woff2"),
+	          (700, "inter-latin-700-normal.woff2"),
+	          (800, "inter-latin-800-normal.woff2")),
+}
+ARABIC_FONTS = {
+	"IBM Plex Sans Arabic": ((400, "ibm-plex-sans-arabic-arabic-400-normal.woff2"),
+	                         (700, "ibm-plex-sans-arabic-arabic-700-normal.woff2")),
+	"Cairo": ((400, "cairo-arabic-400-normal.woff2"), (700, "cairo-arabic-700-normal.woff2")),
+	"Tajawal": ((400, "tajawal-arabic-400-normal.woff2"), (700, "tajawal-arabic-700-normal.woff2")),
+	"Almarai": ((400, "almarai-arabic-400-normal.woff2"), (700, "almarai-arabic-700-normal.woff2")),
+	"Noto Naskh Arabic": ((400, "noto-naskh-arabic-arabic-400-normal.woff2"),
+	                      (700, "noto-naskh-arabic-arabic-700-normal.woff2")),
+}
+MONO_FONT = ("IBM Plex Mono", ((500, "ibm-plex-mono-latin-500-normal.woff2"),))
+DEFAULT_LATIN = "Plus Jakarta Sans"
+DEFAULT_ARABIC = "IBM Plex Sans Arabic"
+
+
+def report_fonts(identity=None):
+	"""The (latin, arabic) pair this site prints with, falling back to the defaults."""
+	identity = identity if isinstance(identity, dict) else {}
+	latin = identity.get("report_font")
+	arabic = identity.get("report_font_ar")
+	return (latin if latin in LATIN_FONTS else DEFAULT_LATIN,
+	        arabic if arabic in ARABIC_FONTS else DEFAULT_ARABIC)
+
+
+def _font_faces(latin=DEFAULT_LATIN, arabic=DEFAULT_ARABIC):
+	"""Only the faces this report actually uses, so an unused family costs nothing."""
 	d = _font_dir()
-	faces = [
-		("Plus Jakarta Sans", 400, "plus-jakarta-sans-latin-400-normal.woff2"),
-		("Plus Jakarta Sans", 700, "plus-jakarta-sans-latin-700-normal.woff2"),
-		("Plus Jakarta Sans", 800, "plus-jakarta-sans-latin-800-normal.woff2"),
-		("IBM Plex Sans Arabic", 400, "ibm-plex-sans-arabic-arabic-400-normal.woff2"),
-		("IBM Plex Sans Arabic", 700, "ibm-plex-sans-arabic-arabic-700-normal.woff2"),
-		("IBM Plex Mono", 500, "ibm-plex-mono-latin-500-normal.woff2"),
-	]
+	faces = [(latin, w, n) for w, n in LATIN_FONTS.get(latin, LATIN_FONTS[DEFAULT_LATIN])]
+	faces += [(arabic, w, n) for w, n in ARABIC_FONTS.get(arabic, ARABIC_FONTS[DEFAULT_ARABIC])]
+	faces += [(MONO_FONT[0], w, n) for w, n in MONO_FONT[1]]
 	return "\n".join(
 		f'@font-face {{ font-family: "{family}"; font-weight: {weight}; '
 		f'src: url("file://{os.path.join(d, name)}") format("woff2"); }}'
@@ -937,8 +967,9 @@ def _css_string(text) -> str:
 	return str(text).replace("\\", "\\\\").replace('"', '\\"').replace("\n", " ")
 
 
-def _css(options, palette, footer=""):
+def _css(options, palette, footer="", fonts=None):
 	lang = options["lang"]
+	latin, arabic = fonts if fonts else (DEFAULT_LATIN, DEFAULT_ARABIC)
 	accent = palette[0]
 	page_size = PAPERS[options["paper"]]
 	numbers = ""
@@ -946,7 +977,7 @@ def _css(options, palette, footer=""):
 		side = "left" if lang == "ar" else "right"
 		numbers = (
 			f'@bottom-{side} {{ content: "{_t(lang, "page")} " counter(page) " {_t(lang, "of")} " counter(pages); '
-			'font-family: "IBM Plex Sans Arabic", "Plus Jakarta Sans"; font-size: 8pt; color: #98a1b2; }'
+			f'font-family: "{arabic}", "{latin}"; font-size: 8pt; color: #98a1b2; }}'
 		)
 	# the organization's own line sits in the middle of the foot. It is an
 	# addition, never a replacement: the credit below always prints
@@ -954,18 +985,18 @@ def _css(options, palette, footer=""):
 	if footer:
 		own_line = (
 			f'@bottom-center {{ content: "{_css_string(footer)}"; '
-			'font-family: "Plus Jakarta Sans", "IBM Plex Sans Arabic"; font-size: 8pt; color: #98a1b2; }'
+			f'font-family: "{latin}", "{arabic}"; font-size: 8pt; color: #98a1b2; }}'
 		)
 	brand_side = "right" if lang == "ar" else "left"
 	# the gap between a bar's label and the bar sits on the page's own side;
 	# a logical padding would follow an English label's direction instead
 	bar_gap_side = "left" if lang == "ar" else "right"
 	return f"""
-{_font_faces()}
+{_font_faces(latin, arabic)}
 @page {{
   size: {page_size};
   margin: 15mm 14mm 17mm;
-  @bottom-{brand_side} {{ content: "{CREDIT}"; font-family: "Plus Jakarta Sans", "IBM Plex Sans Arabic"; font-size: 8pt; color: #98a1b2; }}
+  @bottom-{brand_side} {{ content: "{CREDIT}"; font-family: "{latin}", "{arabic}"; font-size: 8pt; color: #98a1b2; }}
   {own_line}
   {numbers}
 }}
@@ -973,11 +1004,11 @@ html {{ font-size: 10pt; }}
 body {{
   margin: 0;
   color: #0c1322;
-  font-family: "Plus Jakarta Sans", "IBM Plex Sans Arabic", sans-serif;
+  font-family: "{latin}", "{arabic}", sans-serif;
   line-height: 1.45;
 }}
-html[lang="ar"] body {{ font-family: "IBM Plex Sans Arabic", "Plus Jakarta Sans", sans-serif; }}
-.num {{ font-family: "IBM Plex Mono", "IBM Plex Sans Arabic", "Plus Jakarta Sans", monospace; font-variant-numeric: tabular-nums; }}
+html[lang="ar"] body {{ font-family: "{arabic}", "{latin}", sans-serif; }}
+.num {{ font-family: "IBM Plex Mono", "{arabic}", "{latin}", monospace; font-variant-numeric: tabular-nums; }}
 .muted {{ color: #98a1b2; }}
 /* a cell or label keeps the page's alignment even when its own text runs the
    other way, so an English name on an Arabic page still lines up with its
@@ -1136,7 +1167,7 @@ def render_html(doc, options) -> str:
 	return _resolve_dirs(
 		f'<!doctype html><html lang="{lang}" dir="{direction}"><head><meta charset="utf-8">'
 		f"<title>{_e(doc.dashboard_title)}</title>"
-		f"<style>{_css(options, palette, identity['footer_text'])}</style></head>"
+		f"<style>{_css(options, palette, identity['footer_text'], report_fonts(identity))}</style></head>"
 		f"<body>{header}{summary}{_body(items, palette, lang)}</body></html>"
 	)
 

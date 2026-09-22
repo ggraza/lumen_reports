@@ -10,6 +10,10 @@
   "column_break_idy",
   "letterhead",
   "footer_text",
+  "print_section",
+  "report_font",
+  "column_break_fnt",
+  "report_font_ar",
   "theme_section",
   "theme_json"
  ],
@@ -46,6 +50,31 @@
    "fieldname": "footer_text",
    "fieldtype": "Data",
    "label": "Report Footer Line"
+  },
+  {
+   "fieldname": "print_section",
+   "fieldtype": "Section Break",
+   "label": "Report Typography"
+  },
+  {
+   "description": "The face Latin text prints in.",
+   "fieldname": "report_font",
+   "fieldtype": "Select",
+   "label": "Report Font (Latin)",
+   "options": "Plus Jakarta Sans\nInter",
+   "default": "Plus Jakarta Sans"
+  },
+  {
+   "fieldname": "column_break_fnt",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "The face Arabic text prints in. A Latin font carries no Arabic letters, so this is what every Arabic line in the PDF uses.",
+   "fieldname": "report_font_ar",
+   "fieldtype": "Select",
+   "label": "Report Font (Arabic)",
+   "options": "IBM Plex Sans Arabic\nCairo\nTajawal\nAlmarai\nNoto Naskh Arabic",
+   "default": "IBM Plex Sans Arabic"
   },
   {
    "fieldname": "theme_section",
