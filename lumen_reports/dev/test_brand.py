@@ -9,6 +9,7 @@ bench --site <site> execute lumen_reports.dev.test_brand.cleanup
 
 import json
 import os
+import re
 from unittest.mock import patch
 
 import frappe
@@ -54,6 +55,13 @@ def _on_white(image):
 	for x in range(20, 60):
 		for y in range(15, 45):
 			image.putpixel((x, y), (123, 44, 191, 255))
+
+
+def _stacks(markup) -> list:
+	"""Every font-family a rendered page asks for, minus the @font-face declarations,
+	which name one family by definition."""
+	body = re.sub(r"@font-face\s*\{[^}]*\}", "", markup)
+	return [m.group(1).strip() for m in re.finditer(r"font-family:\s*([^;}]+)", body)]
 
 
 def _band(image):
@@ -173,6 +181,65 @@ def run():
 		)
 		out["pdf_renders"] = len(report.render_pdf(board, {"header": 1})) > 1000
 
+		# ---- fonts. A browser resolves a stack per character, not per element, so a stack
+		# with no Arabic family hands every Arabic run to whatever the host has, which on a
+		# Linux bench is DejaVu. Guard the whole sheet, not the one line that was reported:
+		# this has now been fixed twice, once for the body and once for a numeric cell.
+		ar_markup = report.render_html(board, {"header": 1, "lang": "ar", "page_numbers": 1})
+		families = tuple(report.ARABIC_FONTS)
+		naked = [st for st in _stacks(ar_markup) if not any(f in st for f in families)]
+		out["every_stack_names_an_arabic_face"] = not naked
+		if naked:
+			out["stacks_without_an_arabic_face"] = naked
+		en_naked = [st for st in _stacks(markup) if not any(f in st for f in families)]
+		out["english_stacks_name_one_too"] = not en_naked
+		if en_naked:
+			out["english_stacks_without_an_arabic_face"] = en_naked
+		# no stack may end at a face the host supplies rather than one the app ships
+		out["no_host_face_is_named"] = not any(
+			bad in ar_markup for bad in ("Segoe UI", "Tahoma", "DejaVu", "Liberation", "Arial", "Helvetica")
+		)
+
+		# ---- the chosen pair reaches the page, and only a bundled one is let through
+		doc.report_font = "Inter"
+		doc.report_font_ar = "Cairo"
+		doc.save(ignore_permissions=True)
+		frappe.clear_document_cache("Lumen Brand", "Lumen Brand")
+		chosen = report.render_html(board, {"header": 1, "lang": "ar"})
+		out["the_chosen_arabic_face_prints"] = '"Cairo", "Inter"' in chosen
+		out["the_chosen_latin_face_prints"] = "Inter" in chosen and "Plus Jakarta Sans" not in chosen
+		out["only_the_two_chosen_faces_load"] = (
+			"cairo-arabic-400-normal.woff2" in chosen
+			and "ibm-plex-sans-arabic-arabic-400-normal.woff2" not in chosen
+		)
+		out["a_made_up_face_falls_back"] = report.report_fonts(
+			{"report_font": "Comic Sans MS", "report_font_ar": "'; evil {"}
+		) == (report.DEFAULT_LATIN, report.DEFAULT_ARABIC)
+		out["no_identity_still_has_a_pair"] = report.report_fonts(None) == (
+			report.DEFAULT_LATIN,
+			report.DEFAULT_ARABIC,
+		)
+		doc.report_font = report.DEFAULT_LATIN
+		doc.report_font_ar = report.DEFAULT_ARABIC
+		doc.save(ignore_permissions=True)
+		frappe.clear_document_cache("Lumen Brand", "Lumen Brand")
+
+		# ---- every face the picker offers is actually on disk. A missing file is silent:
+		# the browser just moves down the stack.
+		missing = [
+			name
+			for faces in list(report.LATIN_FONTS.values()) + list(report.ARABIC_FONTS.values()) + [report.MONO_FONT[1]]
+			for _weight, name in faces
+			if not os.path.isfile(os.path.join(report._font_dir(), name))
+		]
+		out["every_offered_face_is_bundled"] = not missing
+		if missing:
+			out["missing_font_files"] = missing
+		out["the_picker_and_the_renderer_agree"] = (
+			tuple(report.LATIN_FONTS) == brand.REPORT_FONTS
+			and tuple(report.ARABIC_FONTS) == brand.REPORT_FONTS_AR
+		)
+
 	# ---- the page hands the identity over, so the first frame is already themed
 	from lumen_reports.www import lumen as page
 
@@ -215,6 +282,8 @@ def cleanup():
 	doc.footer_text = ""
 	doc.logo = ""
 	doc.letterhead = ""
+	doc.report_font = report.DEFAULT_LATIN
+	doc.report_font_ar = report.DEFAULT_ARABIC
 	doc.theme_json = "{}"
 	doc.save(ignore_permissions=True)
 	frappe.clear_document_cache("Lumen Brand", "Lumen Brand")

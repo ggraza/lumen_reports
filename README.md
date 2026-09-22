@@ -65,12 +65,20 @@ business, built on the doctypes you already have.
 - **Visual identity**, site-wide, at `/lumen/brand`. One saved look every dashboard
   and every report follows unless it sets its own: organization name, logo,
   letterhead, an own line in the middle of the page foot (beside the "Created by
-  Lumen Reports" credit, which always prints), and a default theme. A
+  Lumen Reports" credit, which always prints), the two faces a report prints in,
+  and a default theme. A
   dashboard overrides it field by field, so changing the identity restyles
   everything that never overrode that field. Upload the identity as an image and
   Lumen reads the colors out of it, with the palette measured from the pixels and,
   when a Gemini key is set, the primary and secondary picked by the AI. Nothing is
   applied until the person confirms it. Needs Lumen Manager or System Manager.
+- **Two report fonts, one Latin and one Arabic.** A Latin family carries no Arabic
+  letters, so a report that named only one would leave every Arabic line to whatever
+  face the server happens to have, which on a Linux bench is DejaVu. Each report
+  therefore names a Latin family and an Arabic family, and the browser picks per
+  character. Both are chosen at `/lumen/brand` and both ship with the app, so a bench
+  with no outbound network prints exactly the same page. Latin: Plus Jakarta Sans or
+  Inter. Arabic: IBM Plex Sans Arabic, Cairo, Tajawal, Almarai or Noto Naskh Arabic.
 - **Form follows data.** The chart type that suits the numbers is chosen by default,
   and the variant bar offers only the alternatives that also make sense.
 
@@ -276,7 +284,8 @@ your own licensed sites. You may not distribute it, in original or modified form
 covered by any code licence. See [`TRADEMARKS.md`](TRADEMARKS.md).
 
 Third-party open-source components retain their own licences. The bundled fonts (Plus
-Jakarta Sans, IBM Plex Sans Arabic, IBM Plex Mono) are under the SIL Open Font
-License, included next to them in `lumen_reports/public/fonts/`.
+Jakarta Sans, Inter, IBM Plex Sans Arabic, IBM Plex Mono, Cairo, Tajawal, Almarai and
+Noto Naskh Arabic) are under the SIL Open Font License, a copy of which is included
+next to each of them in `lumen_reports/public/fonts/`.
 
 Commercial enquiries: [hello@lumen-solutions.co](mailto:hello@lumen-solutions.co)
