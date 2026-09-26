@@ -190,6 +190,75 @@ def _qualified(doctype: str, fieldname: str) -> str:
 	return f"`tab{doctype}`.`{fieldname}`"
 
 
+def _frappe_major() -> int:
+	try:
+		return int(str(frappe.__version__).split(".")[0])
+	except (ValueError, IndexError):
+		return 15  # unknown: assume the older, string-based SELECT
+
+
+def _dict_selects() -> bool:
+	"""Whether this Frappe wants an aggregate as a dict rather than as a string.
+
+	v16 rebuilt get_list on the query builder and refuses a SQL function written
+	as a string in `fields` ("SQL functions are not allowed as strings in
+	SELECT"); v14 and v15 accept only that string form and choke on the dict.
+	get_list stays the permission boundary on both, so only the shape changes.
+	"""
+	return _frappe_major() >= 16
+
+
+def _value_select(doctype: str, function: str, agg_field: str):
+	"""The aggregate column, in the shape this Frappe accepts."""
+	if _dict_selects():
+		# COUNT(*) rather than COUNT(`name`): v16 builds the function itself, and
+		# registers the alias, which is what `order_by="value desc"` then resolves
+		return {function.upper(): "*" if function == "count" else agg_field, "as": "value"}
+	# unqualified column, as in the DATE_FORMAT label below. db_query reads any
+	# field holding "tab" and a dot as a table reference unless the function is
+	# one it knows, and its list is only dayofyear/extract/locate/strpos/count/
+	# sum/avg: a qualified min() or max() is read as a table and thrown out as
+	# "DocType `tabX` not found". One doctype is in play here, so there is
+	# nothing for the column to be ambiguous against.
+	return f"{function}(`{agg_field}`) as value"
+
+
+def _time_grouped_rows(doctype, filters, group_field, date_format, function, agg_field):
+	"""Group by a formatted date on a Frappe that will not take DATE_FORMAT.
+
+	v16 refuses the string form and its dict grammar has no DATE_FORMAT entry, so
+	there is no way to write this in a `fields` list. Instead ask get_list for the
+	query it would have run and put the grouping on that: the WHERE it carries is
+	the permission filtering, which is the whole reason this goes through get_list
+	at all. The two columns are handed to get_list by name first, so its own field
+	permission check runs on exactly the columns the aggregate then reads.
+	"""
+	from pypika import functions as pf
+
+	from frappe.query_builder.functions import Function
+
+	# query-builder equivalents of AGGREGATE_FUNCTIONS
+	terms = {"count": pf.Count, "sum": pf.Sum, "avg": pf.Avg, "min": pf.Min, "max": pf.Max}
+
+	query = frappe.get_list(
+		doctype,
+		filters=filters,
+		fields=list(dict.fromkeys([group_field, agg_field])),
+		limit_page_length=0,
+		run=False,
+	)
+
+	table = frappe.qb.DocType(doctype)
+	label = Function("DATE_FORMAT", table[group_field], date_format).as_("label")
+	value = terms[function](table[agg_field]).as_("value")
+
+	# swap what get_list selected and ordered by, and keep its WHERE
+	query._selects = []
+	query._orderbys = []
+	query = query.select(label, value).groupby(label).orderby(label).limit(MAX_GROUPS)
+	return query.run(as_dict=True)
+
+
 # ---------------------------------------------------------------- aggregates
 
 
@@ -204,7 +273,7 @@ def _execute_aggregate(meta, doctype: str, query: dict, filters: list) -> dict:
 	else:
 		agg_field = _validate_fieldname(meta, doctype, aggregate.get("field"))
 
-	value_expr = f"{function}({_qualified(doctype, agg_field)}) as value"
+	value_expr = _value_select(doctype, function, agg_field)
 
 	group_by = query.get("group_by") or {}
 	if not group_by:
@@ -219,6 +288,15 @@ def _execute_aggregate(meta, doctype: str, query: dict, filters: list) -> dict:
 		if time_grain not in TIME_GRAIN_FORMATS:
 			frappe.throw(_("Unsupported time grain: {0}").format(str(time_grain)[:20]))
 		date_format = TIME_GRAIN_FORMATS[time_grain]
+		if _dict_selects():
+			rows = _time_grouped_rows(
+				doctype, filters, group_field, date_format, function, agg_field
+			)
+			return {
+				"result_type": "series",
+				"labels": [r.label for r in rows],
+				"values": [r.value or 0 for r in rows],
+			}
 		# unqualified column: db_query's table-extraction regex chokes on
 		# `tabX` appearing inside a function call
 		label_expr = f"DATE_FORMAT(`{group_field}`, '{date_format}') as label"
@@ -269,9 +347,8 @@ def _execute_rows(meta, doctype: str, query: dict, filters: list) -> dict:
 		limit_start=start,
 		limit_page_length=limit,
 	)
-	total = frappe.get_list(
-		doctype, filters=filters, fields=[f"count({_qualified(doctype, 'name')}) as total"]
-	)[0].total
+	total_expr = {"COUNT": "*", "as": "total"} if _dict_selects() else "count(`name`) as total"
+	total = frappe.get_list(doctype, filters=filters, fields=[total_expr])[0].total
 
 	columns = []
 	for fn in fieldnames:
